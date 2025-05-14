@@ -44,7 +44,7 @@ marketflow/
 
 Step by step instructions 
 
-```graphql
+```text
 🛠️ Project Setup & Architecture
 1. Initialize the Project
 Start a new Go module:

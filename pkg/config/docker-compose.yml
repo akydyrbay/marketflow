@@ -1,0 +1,68 @@
+version: '3.8'
+services:
+    redis:
+        image: redis:7
+        ports:
+        - "6379:6379"
+        env_file:
+            - config/.env
+        healthcheck:
+            test: ["CMD","redis-cli", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    app:
+        image: marketflow:latest
+        build:
+          context: .
+          dockerfile: Dockerfile
+        env_file:
+          - ./config/.env              # Environment variables for app
+        volumes:
+          - ./config:/app/config:ro    # Mount config files (YAML/JSON/TOML)
+        ports:
+          - "8080:8080"               # Expose application port
+        depends_on:
+          - redis
+          - db
+          - exchange1
+          - exchange2
+          - exchange3
+
+
+    db:
+        image: postgres:15
+        container_name: MarkerFlowDB
+        env_file:
+            - config/.env
+        environment:
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+            POSTGRES_DB: ${DB_NAME}
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        volumes:
+          # - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+          # - db-data:/var/lib/postgresql/data
+
+    exchange1:
+        image: exchange1
+        container_name: exchange1
+        ports:
+            - "40101:40101"
+
+    exchange2:
+        image: exchange2
+        container_name: exchange2
+        ports:
+            - "40102:40102"
+
+    exchange3:
+        image: exchange3
+        container_name: exchange3
+        ports:
+            - "40103:40103"

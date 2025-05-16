@@ -5,6 +5,7 @@ To load and run images using docker
 ```bash
 docker load -i exchange1_amd64.tar
 docker run -p 40101:40101 --name exchange1-amd64 -d exchange1:latest
+nc 127.0.0.1 <port>
 ```
 ```graphql
 marketflow/

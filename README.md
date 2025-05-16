@@ -1,5 +1,11 @@
 # marketflow
 
+To load and run images using docker
+
+```bash
+docker load -i exchange1_amd64.tar
+docker run -p 40101:40101 --name exchange1-amd64 -d exchange1:latest
+```
 ```graphql
 marketflow/
 ├─ cmd/

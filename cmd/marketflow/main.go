@@ -29,3 +29,19 @@ package main
 // 	// Inspect in redis-cli:
 // 	// > redis-cli ZRANGE prices:exchange1:BTCUSDT 0 -1 WITHSCORES
 // }
+
+func main() {
+	// loads all the configs
+	// cfg, err := config.Load()
+	// if err != nil {
+	// log.Fatal("failed to load config: %w", err)
+	// }
+
+	// connect to the postgres
+
+	// connect to the redis
+
+	// create aggregation for processing price updates
+
+	// start the mana
+}

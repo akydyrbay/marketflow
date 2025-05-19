@@ -43,5 +43,8 @@ func main() {
 
 	// create aggregation for processing price updates
 
-	// start the mana
+	// start the manager live/test
+
+	// start the api
+
 }

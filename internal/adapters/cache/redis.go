@@ -1,59 +1,103 @@
 package cache
 
 import (
-	"bufio"
+	"context"
+	"encoding/json"
 	"fmt"
-	"net"
-	"strconv"
+	"time"
+
+	"marketflow/internal/domain"
+	"marketflow/pkg/logger"
+
+	"github.com/go-redis/redis/v8"
 )
 
 type RedisCache struct {
-	Addr   string
-	conn   net.Conn
-	reader *bufio.Reader
+	client *redis.Client
+	ttl    time.Duration
 }
 
-func (r *RedisCache) Connect() error {
-	conn, err := net.Dial("tcp", r.Addr)
-	if err != nil {
-		return fmt.Errorf("failed to connect to Redis at %s: %w", r.Addr, err)
+func NewRedis(db int, addr, password string, ttl time.Duration) *RedisCache {
+	client := redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: password,
+		DB:       db,
+	})
+
+	cache := &RedisCache{
+		client: client,
+		ttl:    ttl,
 	}
-	r.conn = conn
-	r.reader = bufio.NewReader(conn)
+	for i := 0; i < 3; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := client.Ping(ctx).Err(); err != nil {
+			logger.Error("failed to ping redis", "attempt", i+1, "error", err)
+			if i == 2 {
+				logger.Warn("redis connection failed after retries, proceeding with fallback")
+			}
+			time.Sleep(time.Second * time.Duration(i+1))
+		} else {
+			logger.Info("redis connection established")
+			break
+		}
+	}
+	return cache
+}
+
+func (r *RedisCache) SetLatest(ctx context.Context, update domain.PriceUpdate) error {
+	key := fmt.Sprintf("latest:%s:%s", update.Exchange, update.Symbol)
+	data, err := json.Marshal(update)
+	if err != nil {
+		logger.Error("marshal error", "key", key, "error", err)
+		return fmt.Errorf("marshal error: %w", err)
+	}
+	if err := r.client.Set(ctx, key, data, r.ttl).Err(); err != nil {
+		logger.Warn("redis set error, using fallback", "key", key, "error", err)
+		return nil
+	}
+	logger.Info("updated latest price", "key", key, "price", update.Price)
 	return nil
 }
 
-// sendCmd sends a raw inline Redis command and returns the first line of the reply.
-func (r *RedisCache) sendCmd(cmd string) (string, error) {
-	// Commands must end with \r\n
-	if _, err := r.conn.Write([]byte(cmd + "\r\n")); err != nil {
-		return "", fmt.Errorf("write error: %w", err)
+func (r *RedisCache) GetLatest(ctx context.Context, exchange, pair string) (domain.PriceUpdate, error) {
+	key := fmt.Sprintf("latest:%s:%s", exchange, pair)
+	val, err := r.client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		logger.Warn("no data in redis", "key", key)
+		return domain.PriceUpdate{}, fmt.Errorf("no data for %s", key)
 	}
-	// Read the first line of the response
-	line, err := r.reader.ReadString('\n')
 	if err != nil {
-		return "", fmt.Errorf("read error: %w", err)
+		logger.Warn("redis get error, using fallback", "key", key, "error", err)
+		return domain.PriceUpdate{}, fmt.Errorf("redis unavailable: %w", err)
 	}
-	return line, nil
+	var update domain.PriceUpdate
+	if err := json.Unmarshal([]byte(val), &update); err != nil {
+		logger.Error("unmarshal error", "key", key, "error", err)
+		return domain.PriceUpdate{}, fmt.Errorf("unmarshal error: %w", err)
+	}
+	logger.Info("got latest price", "key", key, "price", update.Price)
+	return update, nil
 }
 
-// AddPrice adds a price update to a sorted set keyed by exchange and symbol.
-// It uses the timestamp as the score and the price as the member.
-func (r *RedisCache) AddPrice(exchange, symbol string, price float64, timestamp int64) error {
-	key := fmt.Sprintf("prices:%s:%s", exchange, symbol)
-	score := strconv.FormatInt(timestamp, 10)
-	member := strconv.FormatFloat(price, 'f', -1, 64)
-	cmd := fmt.Sprintf("ZADD %s %s %s", key, score, member)
-	_, err := r.sendCmd(cmd)
-	return err
+func (r *RedisCache) CleanOld(ctx context.Context, pattern string) error {
+	keys, err := r.client.Keys(ctx, pattern).Result()
+	if err != nil {
+		logger.Warn("failed to scan keys for cleanup", "pattern", pattern, "error", err)
+		return nil
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	if err := r.client.Del(ctx, keys...).Err(); err != nil {
+		logger.Warn("failed to delete old keys", "pattern", pattern, "error", err)
+		return nil
+	}
+	logger.Info("cleaned old keys", "pattern", pattern, "count", len(keys))
+	return nil
 }
 
-// Cleanup removes entries older than the given cutoff timestamp (exclusive).
-func (r *RedisCache) Cleanup(exchange, symbol string, cutoff int64) error {
-	key := fmt.Sprintf("prices:%s:%s", exchange, symbol)
-	cutoffStr := strconv.FormatInt(cutoff, 10)
-	// Remove scores from -inf to cutoff
-	cmd := fmt.Sprintf("ZREMRANGEBYSCORE %s -inf %s", key, cutoffStr)
-	_, err := r.sendCmd(cmd)
-	return err
+func (r *RedisCache) Close() error {
+	logger.Info("closing redis cache")
+	return r.client.Close()
 }

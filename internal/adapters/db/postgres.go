@@ -2,31 +2,37 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
-	"time"
+	"os"
+
+	"marketflow/pkg/logger"
 
 	_ "github.com/lib/pq"
 )
 
-func ConnectToDB() *sql.DB {
-	var db *sql.DB
-	var err error
+type PostgresRepository struct {
+	db *sql.DB
+}
 
-	for i := 0; i < 5; i++ {
-		db, err = sql.Open("postgres", "postgres://postgres:postgres@db:5432/leetdb?sslmode=disable")
-		if err == nil {
-			err = db.Ping()
-			if err == nil {
-				break
-			}
-		}
-		log.Println("Waiting for database to be ready...Try: ", i)
-		time.Sleep(2 * time.Second)
-	}
+func ConnectToDB() *PostgresRepository {
+	logger.Info("Starting database connection...")
 
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"),
+	)
+
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatal("cannot connect to database:", err)
+		log.Fatalf("Failed to connect Database %s", err.Error())
 	}
 
-	return db
+	// Sending Ping message
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Failed to send ping message to the Database %s", err.Error())
+	}
+
+	logger.Info("Database connection finished...")
+	return &PostgresRepository{db: db}
 }

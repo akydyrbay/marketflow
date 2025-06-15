@@ -2,11 +2,8 @@ package cache
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"time"
 
-	"marketflow/internal/domain"
 	"marketflow/pkg/logger"
 
 	"github.com/go-redis/redis/v8"
@@ -43,58 +40,6 @@ func NewRedis(db int, addr, password string, ttl time.Duration) *RedisCache {
 		}
 	}
 	return cache
-}
-
-func (r *RedisCache) SetLatest(ctx context.Context, update domain.PriceUpdate) error {
-	key := fmt.Sprintf("latest:%s:%s", update.Exchange, update.Symbol)
-	data, err := json.Marshal(update)
-	if err != nil {
-		logger.Error("marshal error", "key", key, "error", err)
-		return fmt.Errorf("marshal error: %w", err)
-	}
-	if err := r.client.Set(ctx, key, data, r.ttl).Err(); err != nil {
-		logger.Warn("redis set error, using fallback", "key", key, "error", err)
-		return nil
-	}
-	logger.Info("updated latest price", "key", key, "price", update.Price)
-	return nil
-}
-
-func (r *RedisCache) GetLatest(ctx context.Context, exchange, pair string) (domain.PriceUpdate, error) {
-	key := fmt.Sprintf("latest:%s:%s", exchange, pair)
-	val, err := r.client.Get(ctx, key).Result()
-	if err == redis.Nil {
-		logger.Warn("no data in redis", "key", key)
-		return domain.PriceUpdate{}, fmt.Errorf("no data for %s", key)
-	}
-	if err != nil {
-		logger.Warn("redis get error, using fallback", "key", key, "error", err)
-		return domain.PriceUpdate{}, fmt.Errorf("redis unavailable: %w", err)
-	}
-	var update domain.PriceUpdate
-	if err := json.Unmarshal([]byte(val), &update); err != nil {
-		logger.Error("unmarshal error", "key", key, "error", err)
-		return domain.PriceUpdate{}, fmt.Errorf("unmarshal error: %w", err)
-	}
-	logger.Info("got latest price", "key", key, "price", update.Price)
-	return update, nil
-}
-
-func (r *RedisCache) CleanOld(ctx context.Context, pattern string) error {
-	keys, err := r.client.Keys(ctx, pattern).Result()
-	if err != nil {
-		logger.Warn("failed to scan keys for cleanup", "pattern", pattern, "error", err)
-		return nil
-	}
-	if len(keys) == 0 {
-		return nil
-	}
-	if err := r.client.Del(ctx, keys...).Err(); err != nil {
-		logger.Warn("failed to delete old keys", "pattern", pattern, "error", err)
-		return nil
-	}
-	logger.Info("cleaned old keys", "pattern", pattern, "count", len(keys))
-	return nil
 }
 
 func (r *RedisCache) Close() error {

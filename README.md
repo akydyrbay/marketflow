@@ -1,5 +1,7 @@
 # marketflow
 
+Go through the instructions below 
+
 To load and run images using docker
 
 ```bash

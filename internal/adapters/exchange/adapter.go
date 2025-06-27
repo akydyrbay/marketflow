@@ -43,7 +43,7 @@ func (a *ExchangeAdapter) readLoop(ctx context.Context, conn net.Conn) error {
 				fmt.Println("Invalid json:", string(line))
 				continue
 			}
-			if isValidSymbol(update.Symbol) {
+			if isValidSymbol(update.Pair) {
 				a.Outbound <- update
 			}
 		}

@@ -2,8 +2,11 @@ package cache
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
+	"marketflow/internal/domain"
 	"marketflow/pkg/logger"
 
 	"github.com/go-redis/redis/v8"
@@ -45,4 +48,24 @@ func NewRedis(db int, addr, password string, ttl time.Duration) *RedisCache {
 func (r *RedisCache) Close() error {
 	logger.Info("closing redis cache")
 	return r.client.Close()
+}
+
+func (r *RedisCache) GetLatest(ctx context.Context, exchange, pair string) (domain.PriceUpdate, error) {
+	key := fmt.Sprintf("latest:%s:%s", exchange, pair)
+	val, err := r.client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		logger.Warn("no data in redis", "key", key)
+		return domain.PriceUpdate{}, fmt.Errorf("no data for %s", key)
+	}
+	if err != nil {
+		logger.Warn("redis get error, using fallback", "key", key, "error", err)
+		return domain.PriceUpdate{}, fmt.Errorf("redis unavailable: %w", err)
+	}
+	var update domain.PriceUpdate
+	if err := json.Unmarshal([]byte(val), &update); err != nil {
+		logger.Error("unmarshal error", "key", key, "error", err)
+		return domain.PriceUpdate{}, fmt.Errorf("unmarshal error: %w", err)
+	}
+	logger.Info("got latest price", "key", key, "price", update.Price)
+	return update, nil
 }

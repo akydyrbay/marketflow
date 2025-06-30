@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	Postgres         PostgresConfig
+	Postgres         Postgres
 	Redis            RedisConfig
 	Exchanges        []Exchange
 	APIAddr          string
@@ -16,7 +16,7 @@ type Config struct {
 	RedisTTL         time.Duration
 }
 
-type PostgresConfig struct {
+type Postgres struct {
 	Host     string
 	Port     int
 	User     string
@@ -87,7 +87,7 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Postgres: PostgresConfig{
+		Postgres: Postgres{
 			Host:     os.Getenv("PG_HOST"),
 			Port:     pgPort,
 			User:     os.Getenv("PG_USER"),

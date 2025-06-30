@@ -3,9 +3,18 @@ package logger
 import (
 	"context"
 	"log/slog"
+	"os"
 )
 
 var Log *slog.Logger
+
+func Init() {
+	// TextHandler or JSONHandler, whichever you like:
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true, // optional: include file/line in output
+	})
+	Log = slog.New(handler)
+}
 
 func Info(msg string, args ...any) {
 	Log.Info(msg, args...)

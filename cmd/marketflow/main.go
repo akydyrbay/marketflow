@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,36 +14,32 @@ import (
 	"marketflow/internal/api"
 	"marketflow/internal/app/mode"
 	"marketflow/internal/domain"
-	"marketflow/pkg/config"
 	"marketflow/pkg/logger"
 )
 
 func main() {
 	// loads all the configs
 	logger.Init()
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatal("failed to load config: %w", err)
-	}
+	// cfg, err := config.Load()
+	// if err != nil {
+	// 	log.Fatal("failed to load config: %w", err)
+	// }
 
 	// connect to the postgres
-	repo, err := db.NewPostgres()
-	if err != nil {
-		log.Fatalf("failed to init postgres: %v", err)
-	}
+	repo := db.NewPostgres()
+
 	// defer repo.Close()
 
 	// connect to the redis
-	redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port)
-	cache := cache.NewRedis(cfg.Redis.DB, redisAddr, cfg.Redis.Password, cfg.RedisTTL)
-	defer cache.Close()
+	cache := cache.NewRedis()
+	// defer cache.Close()
 
 	// create aggregation for processing price updates
 	inputChan := make(chan domain.PriceUpdate, 10000)
 	// aggr := aggr.NewAggregator(inputChan, repo, cache, cfg.AggregatorWindow)
 
 	// start the manager live/test
-	manager := mode.NewManager(cfg)
+	manager := mode.NewManager()
 	// go aggr.Start(context.Background())
 
 	// ctx, cancel := context.WithCancel(context.Background())
@@ -55,7 +50,7 @@ func main() {
 	// start the api
 	server := api.NewServer(repo, cache, manager)
 	srv := &http.Server{
-		Addr:    cfg.APIAddr,
+		Addr:    ":8080",
 		Handler: server.Router(inputChan),
 	}
 

@@ -4,11 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
-	"time"
+	"os"
 
 	"marketflow/internal/domain"
-	"marketflow/pkg/config"
 	"marketflow/pkg/logger"
 
 	_ "github.com/lib/pq"
@@ -18,39 +16,61 @@ type PostgresRepository struct {
 	db *sql.DB
 }
 
-func NewPostgres() (*PostgresRepository, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		log.Fatal("failed to load config: %w", err)
-	}
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.User, cfg.Postgres.Password,
-		cfg.Postgres.DBName, cfg.Postgres.SSLMode)
+func NewPostgres() *PostgresRepository {
+	logger.Info("Starting database connection...")
 
-	// <— add this:
-	fmt.Println("▶ Postgres DSN:", dsn)
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("DB_NAME"), os.Getenv("DB_PORT"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"),
+	)
+
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		logger.Error("failed to connect to postgres", "error", err)
-		return nil, fmt.Errorf("failed to connect to postgres: %w", err)
 	}
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	for i := 0; i < 10; i++ {
-		if err := db.PingContext(ctx); err != nil {
-			logger.Error("failed to ping postgres", "error", err)
-			return nil, fmt.Errorf("failed to ping postgres: %w", err)
-		}
+	// Sending Ping message
+	if err := db.Ping(); err != nil {
+		logger.Error("failed to ping postgres", "error", err)
 	}
 
 	logger.Info("postgres connection established")
-	return &PostgresRepository{db: db}, nil
+	return &PostgresRepository{db: db}
 }
+
+// func NewPostgres() (*PostgresRepository, error) {
+// 	cfg, err := config.Load()
+// 	if err != nil {
+// 		log.Fatal("failed to load config: %w", err)
+// 	}
+// 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+// 		cfg.Postgres.Host, cfg.Postgres.Port, cfg.Postgres.User, cfg.Postgres.Password,
+// 		cfg.Postgres.DBName, cfg.Postgres.SSLMode)
+
+// 	// <— add this:
+// 	fmt.Println("▶ Postgres DSN:", dsn)
+// 	db, err := sql.Open("postgres", dsn)
+// 	if err != nil {
+// 		logger.Error("failed to connect to postgres", "error", err)
+// 		return nil, fmt.Errorf("failed to connect to postgres: %w", err)
+// 	}
+
+// 	db.SetMaxOpenConns(25)
+// 	db.SetMaxIdleConns(5)
+// 	db.SetConnMaxLifetime(5 * time.Minute)
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// 	defer cancel()
+// 	for i := 0; i < 10; i++ {
+// 		if err := db.PingContext(ctx); err != nil {
+// 			logger.Error("failed to ping postgres", "error", err)
+// 			return nil, fmt.Errorf("failed to ping postgres: %w", err)
+// 		}
+// 	}
+
+// 	logger.Info("postgres connection established")
+// 	return &PostgresRepository{db: db}, nil
+// }
 
 func (r *PostgresRepository) GetLatest(ctx context.Context, exchange, pair string) (domain.PriceStats, error) {
 	query := `

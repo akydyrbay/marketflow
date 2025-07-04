@@ -23,9 +23,8 @@ type Manager struct {
 	cfg        *config.Config
 }
 
-func NewManager(cfg *config.Config) *Manager {
+func NewManager() *Manager {
 	return &Manager{
 		mode: Test,
-		cfg:  cfg,
 	}
 }

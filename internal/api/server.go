@@ -38,10 +38,10 @@ func (s *Server) handleLatestPrice(input chan<- domain.PriceUpdate) http.Handler
 				return
 			}
 			update = domain.PriceUpdate{
-				Exchange:  stats.Exchange,
-				Pair:      stats.Pair,
-				Price:     stats.AveragePrice,
-				Timestamp: stats.Timestamp,
+				Exchange: stats.Exchange,
+				Pair:     stats.Pair,
+				Price:    stats.Average,
+				Time:     stats.Timestamp,
 			}
 		}
 
@@ -49,7 +49,7 @@ func (s *Server) handleLatestPrice(input chan<- domain.PriceUpdate) http.Handler
 			"exchange": update.Exchange,
 			"pair":     update.Pair,
 			"price":    update.Price,
-			"time":     update.Timestamp,
+			"time":     update.Time,
 		})
 	}
 }

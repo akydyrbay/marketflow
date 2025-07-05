@@ -3,17 +3,17 @@ package domain
 import "time"
 
 type PriceUpdate struct {
-	Pair      string    `json:"pair_name"`
-	Exchange  string    `json:"exchange"`
-	Timestamp time.Time `json:"timestamp"`
-	Price     float64   `json:"price"`
+	Exchange string
+	Pair     string
+	Price    float64
+	Time     time.Time
 }
 
 type PriceStats struct {
-	Exchange     string    `json:"exchange"`
-	Pair         string    `json:"pair_name"`
-	Timestamp    time.Time `json:"timestamp"`
-	AveragePrice float64   `json:"average_price"`
-	MinPrice     float64   `json:"min_price"`
-	MaxPrice     float64   `json:"max_price"`
+	Exchange  string
+	Pair      string
+	Timestamp time.Time
+	Average   float64
+	Min       float64
+	Max       float64
 }

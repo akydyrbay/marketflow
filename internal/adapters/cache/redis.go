@@ -2,10 +2,10 @@ package cache
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"marketflow/internal/domain"
@@ -58,22 +58,30 @@ func (r *RedisCache) Close() error {
 	return r.client.Close()
 }
 
+func (r *RedisCache) StoreLatestPrice(ctx context.Context, update domain.PriceUpdate) error {
+	key := fmt.Sprintf("latest:%s:%s", update.Exchange, update.Pair)
+	value := fmt.Sprintf("%f", update.Price)
+
+	// Store with 5 minute expiration
+	return r.client.Set(ctx, key, value, 5*time.Minute).Err()
+}
+
 func (r *RedisCache) GetLatest(ctx context.Context, exchange, pair string) (domain.PriceUpdate, error) {
 	key := fmt.Sprintf("latest:%s:%s", exchange, pair)
 	val, err := r.client.Get(ctx, key).Result()
-	if err == redis.Nil {
-		logger.Warn("no data in redis", "key", key)
-		return domain.PriceUpdate{}, fmt.Errorf("no data for %s", key)
-	}
 	if err != nil {
-		logger.Warn("redis get error, using fallback", "key", key, "error", err)
-		return domain.PriceUpdate{}, fmt.Errorf("redis unavailable: %w", err)
+		return domain.PriceUpdate{}, err
 	}
-	var update domain.PriceUpdate
-	if err := json.Unmarshal([]byte(val), &update); err != nil {
-		logger.Error("unmarshal error", "key", key, "error", err)
-		return domain.PriceUpdate{}, fmt.Errorf("unmarshal error: %w", err)
+
+	price, err := strconv.ParseFloat(val, 64)
+	if err != nil {
+		return domain.PriceUpdate{}, err
 	}
-	logger.Info("got latest price", "key", key, "price", update.Price)
-	return update, nil
+
+	return domain.PriceUpdate{
+		Exchange: exchange,
+		Pair:     pair,
+		Price:    price,
+		Time:     time.Now(),
+	}, nil
 }

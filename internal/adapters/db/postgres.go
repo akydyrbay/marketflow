@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"marketflow/internal/domain"
@@ -45,6 +46,7 @@ func NewPostgres() *PostgresRepository {
 	var db *sql.DB
 	var err error
 	maxRetries := 5
+
 	for i := 0; i < maxRetries; i++ {
 		db, err = sql.Open("postgres", dsn)
 		if err != nil {
@@ -66,7 +68,10 @@ func NewPostgres() *PostgresRepository {
 		logger.Error("failed to connect after retries", "error", err)
 		log.Fatal(err)
 	}
-
+	if err := createTables(db); err != nil {
+		logger.Error("failed to create tables", "error", err)
+		log.Fatal(err)
+	}
 	logger.Info("postgres connection established")
 	return &PostgresRepository{db: db}
 }
@@ -84,9 +89,13 @@ func (r *PostgresRepository) GetLatest(ctx context.Context, exchange, pair strin
 		ORDER BY timestamp DESC
 		LIMIT 1
 	`
+	var avgStr, minStr, maxStr string
 	var stats domain.PriceStats
+	stats.Average, _ = strconv.ParseFloat(avgStr, 64)
+	stats.Min, _ = strconv.ParseFloat(minStr, 64)
+	stats.Max, _ = strconv.ParseFloat(maxStr, 64)
 	err := r.db.QueryRowContext(ctx, query, pair, exchange).Scan(
-		&stats.Pair, &stats.Exchange, &stats.Timestamp, &stats.AveragePrice, &stats.MinPrice, &stats.MaxPrice,
+		&stats.Pair, &stats.Exchange, &stats.Timestamp, &stats.Average, &stats.Min, &stats.Max,
 	)
 	if err == sql.ErrNoRows {
 		logger.Warn("no latest price found", "pair", pair, "exchange", exchange)
@@ -97,6 +106,76 @@ func (r *PostgresRepository) GetLatest(ctx context.Context, exchange, pair strin
 		return domain.PriceStats{}, fmt.Errorf("failed to get latest price: %w", err)
 	}
 
-	logger.Info("got latest price", "pair", pair, "exchange", exchange, "price", stats.AveragePrice)
+	logger.Info("got latest price", "pair", pair, "exchange", exchange, "price", stats.Average)
 	return stats, nil
+}
+
+func createTables(db *sql.DB) error {
+	_, err := db.Exec(`
+        CREATE TABLE IF NOT EXISTS price_stats (
+            id SERIAL PRIMARY KEY,
+            pair_name VARCHAR(20) NOT NULL,
+            exchange VARCHAR(50) NOT NULL,
+            timestamp TIMESTAMP NOT NULL,
+            average_price DECIMAL(24,8) NOT NULL,
+            min_price DECIMAL(24,8) NOT NULL,
+            max_price DECIMAL(24,8) NOT NULL,
+            UNIQUE(pair_name, exchange, timestamp)
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_pair_timestamp ON price_stats(pair_name, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_exchange_pair_timestamp ON price_stats(exchange, pair_name, timestamp);
+    `)
+	logger.Info("Table is created")
+	return err
+}
+
+func (r *PostgresRepository) StoreStatsBatch(ctx context.Context, stats []domain.PriceStats) error {
+	if len(stats) == 0 {
+		return nil
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `
+		INSERT INTO price_stats (pair_name, exchange, timestamp, average_price, min_price, max_price)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (pair_name, exchange, timestamp) DO UPDATE
+		SET average_price = EXCLUDED.average_price,
+			min_price = EXCLUDED.min_price,
+			max_price = EXCLUDED.max_price
+	`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, stat := range stats {
+		_, err := stmt.ExecContext(ctx,
+			stat.Pair,
+			stat.Exchange,
+			stat.Timestamp,
+			stat.Average,
+			stat.Min,
+			stat.Max,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (r *PostgresRepository) StorePriceUpdate(ctx context.Context, update domain.PriceUpdate) error {
+	// This will be called by the cache layer
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO price_updates (pair, exchange, price, timestamp)
+		VALUES ($1, $2, $3, $4)
+	`, update.Pair, update.Exchange, update.Price, update.Time)
+	return err
 }

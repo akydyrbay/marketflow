@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"log/slog"
 	"os"
+	"time"
 
 	"marketflow/internal/domain"
 	"marketflow/pkg/logger"
@@ -19,15 +19,37 @@ type RedisCache struct {
 }
 
 func NewRedis() *RedisCache {
-	slog.Info("Starting cache connection...")
+	logger.Info("Starting cache connection...")
 
-	client := redis.NewClient(&redis.Options{Addr: os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"), Password: os.Getenv("REDIS_PASSWORD"), DB: 0})
-	_, err := client.Ping(context.Background()).Result()
-	if err != nil {
-		log.Fatalf("Failed to connect cache memory: %s", err.Error())
+	host := os.Getenv("CACHE_HOST")
+	port := os.Getenv("CACHE_PORT")
+	pass := os.Getenv("CACHE_PASSWORD")
+
+	if host == "" || port == "" {
+		logger.Error("CACHE_HOST or CACHE_PORT not set", "host", host, "port", port)
+		log.Fatal("missing Redis config")
 	}
 
-	slog.Info("Cache connection finished...")
+	addr := fmt.Sprintf("%s:%s", host, port)
+	var client *redis.Client
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		client = redis.NewClient(&redis.Options{
+			Addr:     addr,
+			Password: pass,
+			DB:       0,
+		})
+
+		_, err := client.Ping(context.Background()).Result()
+		if err == nil {
+			break
+		}
+
+		logger.Warn("failed to connect to Redis", "attempt", i+1, "error", err)
+		time.Sleep(2 * time.Second)
+	}
+
+	logger.Info("Cache connection established")
 	return &RedisCache{client: client}
 }
 

@@ -19,13 +19,9 @@ import (
 )
 
 func main() {
-	// loads all the configs
+	
 	logger.Init()
-	// cfg, err := config.Load()
-	// if err != nil {
-	// 	log.Fatal("failed to load config: %w", err)
-	// }
-
+	
 	// connect to the postgres
 	repo := db.NewPostgres()
 

@@ -6,13 +6,13 @@ EXCH3=images/exchange3_amd64.tar
 
 DC=docker-compose 
 
-load-images:
+load:
 	@echo "Loading exchange images..."
 	docker load -i $(EXCH1)
 	docker load -i $(EXCH2)
 	docker load -i $(EXCH3)
 
-up: load-images
+up:
 	@echo "Starting $(PROJECT_NAME)..."
 	$(DC) up --build
 

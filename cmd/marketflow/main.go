@@ -53,6 +53,7 @@ func main() {
 		}
 	}()
 
+	// seperate it with other function 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 

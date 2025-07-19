@@ -10,7 +10,7 @@ postman request:
 ```txt
 http://localhost:8080/prices/latest/BTCUSDT
 ```
-
+//update
 ```graphql
 marketflow/
 ├─ cmd/

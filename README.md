@@ -10,47 +10,46 @@ postman request:
 ```txt
 http://localhost:8080/prices/latest/BTCUSDT
 ```
-//update
 ```graphql
 marketflow/
 ├─ cmd/
 │  └─ marketflow/
-│     ├── main.go           # Application entrypoint: bootstraps config, logger, adapters & HTTP server
-│     └── flags.go          # Defines CLI flags/subcommands (e.g. “test” vs “live” mode)
+│     ├── main.go           # ③ bootstraps config & logger
+│     └── shutdown.go       # ⑫ signal handling & graceful shutdown
 │
 ├─ internal/
 │  ├─ domain/
-│  │  ├── models.go         # Core data types (PriceUpdate, AggregateRecord, Mode enum)
-│  │  └── symbols.go        # Definition of allowed symbols (BTCUSDT, etc.) & validation
+│  │  ├── models.go         # core structs: PriceUpdate, ModeResult…
+│  │  └── ports.go          # interfaces: Exchange, Repository, Cache
 │  │
 │  ├─ app/
-│  │  ├── orchestrator.go   # Coordinates adapters, cache, DB, and scheduler
-│  │  ├── processor.go      # Business logic: fan-out/fan-in, filtering, dispatching
-│  │  ├── aggregator.go     # Aggregates 60-sec windows, computes min/avg/max
-│  │  └── testmode.go       # Synthetic data generator when in “test” mode
+│  │  ├─ aggregation/
+│  │  │   └── aggregator.go  # ⑦ reads from Exchange ports, writes to DB/Cache
+│  │  │
+│  │  ├─ mode/
+│  │  │   └── mode.go        # ⑦ computes high/low/average modes
+│  │  │
+│  │  └─ fan/
+│  │      ├── fan.go         # ⑦ fan-out orchestration
+│  │      └── workpool.go    # ⑦ worker pool implementation
+│
+├─ adapters/
+│  ├─ exchange/
+│  │   └── adapter.go        # ⑥ TCP client → domain.Exchange
 │  │
-│  └─ adapters/
-│     ├─ exchange/
-│     │  ├── adapter.go      # ExchangeAdapter struct: connect(), readLoop(), reconnect logic
-│     │  └── price_update.go # Unmarshalling into PriceUpdate, symbol-filter helper
-│     │
-│     ├─ cache/
-│     │  └── redis.go        # Redis client wrapper: push updates to sorted sets, eviction
-│     │
-│     ├─ db/
-│     │  └── postgres.go     # Postgres client wrapper: batch insert aggregates, backfill
-│     │
-│     └─ http/
-│        ├── server.go       # HTTP server setup (router, middleware, shutdown)
-│        └── handlers.go     # REST handlers: /prices/latest, /aggregate, /mode, /health
+│  ├─ cache/
+│  │   └── redis.go          # ⑤ implements domain.Cache on Redis
+│  │
+│  └─ db/
+│      └── postgres.go       # ④ implements domain.Repository on Postgres
+│
+├─ api/
+│  ├── server.go             # ⑩ HTTP server setup & router
+│  └── handlers.go           # ⑪ REST endpoints: /prices/latest, /aggregate, /mode, /health
 │
 └─ pkg/
-   ├─ config/
-   │  ├── loader.go          # Loads YAML/JSON/TOML + environment vars (e.g. via Viper)
-   │  └── defaults.go        # Default config values & validation rules
-   │
    └─ logger/
-      └── logger.go          # Initializes Go’s slog logger with level, format, context tags
+       └── logger.go         # ③ configures Go’s slog logger (level, format, context)
 ```
 
 Step by step instructions 

@@ -1,143 +1,74 @@
 package aggr
 
 import (
-	"context"
-	"os"
+	"math"
 	"strings"
 	"time"
 
 	"marketflow/internal/domain"
-	"marketflow/pkg/logger"
 )
 
-type Aggregator struct {
-	Input  <-chan domain.PriceUpdate
-	Repo   domain.PriceRepository
-	Cache  domain.Cache
-	Window time.Duration
-}
+func Aggregate(mergedCh chan []domain.Data) (chan map[string]domain.ExchangeData, chan []domain.Data) {
+	aggregatedCh := make(chan map[string]domain.ExchangeData)
+	rawDataCh := make(chan []domain.Data)
 
-func NewAggregator(input <-chan domain.PriceUpdate, repo domain.PriceRepository, cache domain.Cache) *Aggregator {
-	windowStr := os.Getenv("AGGREGATOR_WINDOW")
-	if windowStr == "" {
-		windowStr = "1m" // Default to 1 minute
-	}
+	go func() {
+		for dataBatch := range mergedCh {
 
-	window, err := time.ParseDuration(windowStr)
-	if err != nil {
-		logger.Error("failed to parse AGGREGATOR_WINDOW, using default", "error", err, "default", "1m")
-		window = time.Minute
-	}
+			// To prevent the main thread from being delayed
+			go func() {
+				rawDataCh <- dataBatch
+			}()
 
-	return &Aggregator{
-		Input:  input,
-		Repo:   repo,
-		Cache:  cache,
-		Window: window,
-	}
-}
+			exchangesData := make(map[string]domain.ExchangeData)
+			counts := make(map[string]int)
+			sums := make(map[string]float64)
 
-func (a *Aggregator) Start(ctx context.Context) {
-	buffer := make(map[string][]domain.PriceUpdate)
-	ticker := time.NewTicker(a.Window)
-	defer ticker.Stop()
+			for _, data := range dataBatch {
+				keys := []string{
+					data.ExchangeName + " " + data.Symbol, // by exchange
+					"All " + data.Symbol,                  // by all exchanges
+				}
 
-	logger.Info("starting price aggregator", "window", a.Window)
+				for _, key := range keys {
+					val, exists := exchangesData[key]
+					if !exists {
+						val = domain.ExchangeData{
+							Exchange:  strings.Split(key, " ")[0],
+							Pair_name: data.Symbol,
+							Min_price: math.Inf(1),
+							Max_price: math.Inf(-1),
+						}
+					}
 
-	for {
-		select {
-		case <-ctx.Done():
-			a.flush(ctx, buffer, time.Now())
-			logger.Info("aggregator stopped by context")
-			return
+					// обновление мин/макс
+					if data.Price < val.Min_price {
+						val.Min_price = data.Price
+					}
+					if data.Price > val.Max_price {
+						val.Max_price = data.Price
+					}
 
-		case update, ok := <-a.Input:
-			if !ok {
-				a.flush(ctx, buffer, time.Now())
-				logger.Info("aggregator channel closed, stopping")
-				return
+					sums[key] += data.Price
+					counts[key]++
+
+					exchangesData[key] = val
+				}
 			}
 
-			// Store immediately in cache
-			if err := a.Cache.StoreLatestPrice(ctx, update); err != nil {
-				logger.Error("failed to store in cache", "error", err)
+			// Counting avg price
+			for key, ed := range exchangesData {
+				if count, ok := counts[key]; ok && count > 0 {
+					ed.Average_price = sums[key] / float64(count)
+					ed.Timestamp = time.Now()
+					exchangesData[key] = ed
+				}
 			}
-
-			// Add to buffer for aggregation
-			key := update.Exchange + ":" + update.Pair
-			buffer[key] = append(buffer[key], update)
-			logger.Debug("price added to buffer", "exchange", update.Exchange, "pair", update.Pair, "price", update.Price)
-
-		case tickTime := <-ticker.C:
-			a.flush(ctx, buffer, tickTime)
-			// Reset buffer but keep existing maps for next period
-			for key := range buffer {
-				buffer[key] = nil // Clear slice but keep map entry
-			}
-			logger.Info("flushed aggregation buffer", "time", tickTime)
+			aggregatedCh <- exchangesData
 		}
-	}
-}
+		close(aggregatedCh)
+		close(rawDataCh)
+	}()
 
-func (a *Aggregator) flush(ctx context.Context, buffer map[string][]domain.PriceUpdate, ts time.Time) {
-	if len(buffer) == 0 {
-		logger.Debug("flush called with empty buffer")
-		return
-	}
-
-	for key, updates := range buffer {
-		if len(updates) == 0 {
-			continue
-		}
-
-		parts := strings.Split(key, ":")
-		if len(parts) < 2 {
-			logger.Warn("invalid buffer key", "key", key)
-			continue
-		}
-
-		exchange, pair := parts[0], parts[1]
-		stats := a.aggregateUpdates(updates, exchange, pair, ts)
-
-		// Store in database
-		if err := a.Repo.StoreStatsBatch(ctx, []domain.PriceStats{stats}); err != nil {
-			logger.Error("failed to store aggregated stats",
-				"exchange", exchange, "pair", pair, "error", err)
-		}
-
-		logger.Info("stored aggregated stats",
-			"exchange", exchange, "pair", pair,
-			"avg", stats.Average, "min", stats.Min, "max", stats.Max)
-	}
-}
-
-func (a *Aggregator) aggregateUpdates(updates []domain.PriceUpdate, exchange, pair string, ts time.Time) domain.PriceStats {
-	if len(updates) == 0 {
-		return domain.PriceStats{}
-	}
-
-	var sum float64
-	min := updates[0].Price
-	max := updates[0].Price
-
-	for _, update := range updates {
-		sum += update.Price
-		if update.Price < min {
-			min = update.Price
-		}
-		if update.Price > max {
-			max = update.Price
-		}
-	}
-
-	avg := sum / float64(len(updates))
-
-	return domain.PriceStats{
-		Exchange:  exchange,
-		Pair:      pair,
-		Timestamp: ts,
-		Average:   avg,
-		Min:       min,
-		Max:       max,
-	}
+	return aggregatedCh, rawDataCh
 }

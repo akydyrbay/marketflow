@@ -9,9 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"marketflow/internal/app/aggr"
-	"marketflow/internal/app/pipeline"
 	"marketflow/internal/domain"
+	"marketflow/internal/service"
 	"marketflow/pkg/logger"
 )
 
@@ -27,7 +26,7 @@ type LiveMode struct {
 	mu        sync.Mutex
 }
 
-func NewTCPClient() *LiveMode {
+func NewLiveModeFetcher() *LiveMode {
 	return &LiveMode{Exchanges: make([]*Exchange, 0)}
 }
 
@@ -61,9 +60,9 @@ func (m *LiveMode) SetupDataFetcher() (chan map[string]domain.ExchangeData, chan
 		return nil, nil, errors.New("failed to connect to 3 exchanges")
 	}
 
-	mergedCh := pipeline.FanIn(dataFlows)
+	mergedCh := service.FanIn(dataFlows)
 
-	aggregated, rawDatach := aggr.Aggregate(mergedCh)
+	aggregated, rawDatach := service.Aggregate(mergedCh)
 
 	go func() {
 		wg.Wait()
@@ -101,7 +100,7 @@ func (exch *Exchange) SetWorkers(globalWg *sync.WaitGroup, fan_in chan domain.Da
 		workerWg.Add(1)
 		globalWg.Add(1)
 		go func() {
-			pipeline.Worker(exch.number, exch.messageChan, fan_in, workerWg)
+			service.Worker(exch.number, exch.messageChan, fan_in, workerWg)
 			globalWg.Done()
 		}()
 	}
@@ -185,4 +184,21 @@ func (m *LiveMode) Close() {
 
 		m.Exchanges[i].closeCh <- true
 	}
+}
+func (m *LiveMode) CheckHealth() error {
+	var unhealthy string
+	for i := 0; i < len(m.Exchanges); i++ {
+		select {
+		case _, ok := <-m.Exchanges[i].messageChan:
+			if !ok {
+				unhealthy += m.Exchanges[i].number + " "
+			}
+		default:
+			continue
+		}
+	}
+	if len(unhealthy) != 0 {
+		return errors.New("unhealthy exchanges: " + unhealthy)
+	}
+	return nil
 }

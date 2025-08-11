@@ -18,15 +18,10 @@ services:
           context: .
           dockerfile: Dockerfile
         env_file:
-          - ./.env
-        depends_on:
-            redis:
-                condition: service_healthy
-            db:
-                condition: service_healthy        
+          - ./.env 
         volumes:
           - ./config:/app/config:ro   
-          - ./logs:/app/logs
+        #   - ./logs:/app/logs
         ports:
           - "8080:8080"               
         depends_on:
@@ -54,7 +49,7 @@ services:
             timeout: 5s
             retries: 5
         volumes:
-            - ./init.sql:/docker-entrypoint-initdb.d/db/init.sql
+            - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     exchange1:
         image: exchange1

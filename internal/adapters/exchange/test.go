@@ -4,15 +4,15 @@ import (
 	"math/rand"
 	"time"
 
-	"marketflow/internal/app/aggr"
 	"marketflow/internal/domain"
+	"marketflow/internal/service"
 )
 
 type TestMode struct {
 	stop chan struct{}
 }
 
-func NewTestGenerator(exchange string) *TestMode {
+func NewTestModeFetcher() *TestMode {
 	return &TestMode{stop: make(chan struct{})}
 }
 
@@ -57,7 +57,7 @@ func (m *TestMode) SetupDataFetcher() (chan map[string]domain.ExchangeData, chan
 		}
 	}()
 
-	aggregatedCh, rawCh := aggr.Aggregate(rawFlow)
+	aggregatedCh, rawCh := service.Aggregate(rawFlow)
 	return aggregatedCh, rawCh, nil
 }
 
@@ -91,9 +91,8 @@ func AggregateFromTestMode(input chan []domain.Data) (chan map[string]domain.Exc
 	return aggregated, raw
 }
 
-func (g *TestMode) Stop() error {
+func (g *TestMode) Close() {
 	close(g.stop)
-	return nil
 }
 func (m *TestMode) CheckHealth() error {
 	return nil

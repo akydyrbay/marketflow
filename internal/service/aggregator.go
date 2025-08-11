@@ -1,4 +1,4 @@
-package aggr
+package service
 
 import (
 	"math"

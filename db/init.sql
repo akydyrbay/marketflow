@@ -1,13 +1,17 @@
-CREATE TABLE IF NOT EXISTS price_stats (
-    id SERIAL PRIMARY KEY,
-    pair_name VARCHAR(20) NOT NULL,
-    exchange VARCHAR(50) NOT NULL,
-    timestamp TIMESTAMP NOT NULL,
-    average_price DECIMAL(24,8) NOT NULL,
-    min_price DECIMAL(24,8) NOT NULL,
-    max_price DECIMAL(24,8) NOT NULL,
-    UNIQUE(pair_name, exchange, timestamp)
+CREATE TABLE AggregatedData(
+    Data_id SERIAL PRIMARY KEY,
+    Pair_name VARCHAR NOT NULL,
+    Exchange VARCHAR(100) NOT NULL,
+    StoredTime TimestampTZ DEFAULT NOW(),
+    Average_price FLOAT NOT NULL, 
+    Min_price FLOAT NOT NULL,
+    Max_price FLOAT NOT NULL
 );
 
-CREATE INDEX idx_pair_timestamp ON price_stats(pair_name, timestamp);
-CREATE INDEX idx_exchange_pair_timestamp ON price_stats(exchange, pair_name, timestamp);
+CREATE TABLE LatestData(
+    Exchange VARCHAR(100) NOT NULL,
+    Pair_name VARCHAR NOT NULL,
+    Price FLOAT NOT NULL,
+    StoredTime BIGINT NOT NULL,
+    CONSTRAINT unique_exchange_pair UNIQUE (Exchange, Pair_name)
+);

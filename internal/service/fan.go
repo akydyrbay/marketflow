@@ -1,4 +1,4 @@
-package pipeline
+package service
 
 import (
 	"marketflow/internal/domain"

@@ -1,15 +1,13 @@
 package db
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
-	"marketflow/internal/domain"
+	// "marketflow/internal/domain"
 	"marketflow/pkg/logger"
 
 	_ "github.com/lib/pq"
@@ -68,46 +66,13 @@ func NewPostgres() *PostgresRepository {
 		logger.Error("failed to connect after retries", "error", err)
 		log.Fatal(err)
 	}
+
 	if err := createTables(db); err != nil {
 		logger.Error("failed to create tables", "error", err)
 		log.Fatal(err)
 	}
 	logger.Info("postgres connection established")
 	return &PostgresRepository{db: db}
-}
-
-func (r *PostgresRepository) Close() error {
-	logger.Info("closing postgres")
-	return r.db.Close()
-}
-
-func (r *PostgresRepository) GetLatest(ctx context.Context, exchange, pair string) (domain.PriceStats, error) {
-	query := `
-		SELECT pair_name, exchange, timestamp, average_price, min_price, max_price
-		FROM price_stats
-		WHERE pair_name = $1 AND exchange = $2
-		ORDER BY timestamp DESC
-		LIMIT 1
-	`
-	var avgStr, minStr, maxStr string
-	var stats domain.PriceStats
-	stats.Average, _ = strconv.ParseFloat(avgStr, 64)
-	stats.Min, _ = strconv.ParseFloat(minStr, 64)
-	stats.Max, _ = strconv.ParseFloat(maxStr, 64)
-	err := r.db.QueryRowContext(ctx, query, pair, exchange).Scan(
-		&stats.Pair, &stats.Exchange, &stats.Timestamp, &stats.Average, &stats.Min, &stats.Max,
-	)
-	if err == sql.ErrNoRows {
-		logger.Warn("no latest price found", "pair", pair, "exchange", exchange)
-		return domain.PriceStats{}, fmt.Errorf("no latest price for %s:%s", exchange, pair)
-	}
-	if err != nil {
-		logger.Error("failed to get latest price", "pair", pair, "exchange", exchange, "error", err)
-		return domain.PriceStats{}, fmt.Errorf("failed to get latest price: %w", err)
-	}
-
-	logger.Info("got latest price", "pair", pair, "exchange", exchange, "price", stats.Average)
-	return stats, nil
 }
 
 func createTables(db *sql.DB) error {
@@ -130,52 +95,7 @@ func createTables(db *sql.DB) error {
 	return err
 }
 
-func (r *PostgresRepository) StoreStatsBatch(ctx context.Context, stats []domain.PriceStats) error {
-	if len(stats) == 0 {
-		return nil
-	}
-
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	stmt, err := tx.PrepareContext(ctx, `
-		INSERT INTO price_stats (pair_name, exchange, timestamp, average_price, min_price, max_price)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (pair_name, exchange, timestamp) DO UPDATE
-		SET average_price = EXCLUDED.average_price,
-			min_price = EXCLUDED.min_price,
-			max_price = EXCLUDED.max_price
-	`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	for _, stat := range stats {
-		_, err := stmt.ExecContext(ctx,
-			stat.Pair,
-			stat.Exchange,
-			stat.Timestamp,
-			stat.Average,
-			stat.Min,
-			stat.Max,
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
-}
-
-func (r *PostgresRepository) StorePriceUpdate(ctx context.Context, update domain.PriceUpdate) error {
-	// This will be called by the cache layer
-	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO price_updates (pair, exchange, price, timestamp)
-		VALUES ($1, $2, $3, $4)
-	`, update.Pair, update.Exchange, update.Price, update.Time)
-	return err
+func (r *PostgresRepository) Close() error {
+	logger.Info("closing postgres connection")
+	return r.db.Close()
 }

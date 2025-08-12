@@ -3,9 +3,10 @@ package utils
 import (
 	"encoding/json"
 	"log/slog"
-	"marketflow/internal/domain"
 	"net/http"
 	"time"
+
+	"marketflow/internal/domain"
 )
 
 func SendMsg(w http.ResponseWriter, code int, msg string) error {

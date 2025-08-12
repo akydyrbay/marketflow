@@ -1,9 +1,10 @@
 package server
 
 import (
-	"log/slog"
-	"marketflow/internal/domain"
 	"net/http"
+
+	"marketflow/internal/domain"
+	"marketflow/pkg/logger"
 )
 
 // Latest data validation and service logic
@@ -14,12 +15,12 @@ func (serv *DataModeServiceImp) LatestData(exchange string, symbol string) (doma
 	)
 
 	if err := domain.CheckExchangeName(exchange); err != nil {
-		slog.Error("Failed to get latest data: ", "error", err.Error())
+		logger.Error("Failed to get latest data: ", "error", err.Error())
 		return latest, http.StatusBadRequest, err
 	}
 
 	if err := domain.CheckSymbolName(symbol); err != nil {
-		slog.Error("Failed to get latest data: ", "error", err.Error())
+		logger.Error("Failed to get latest data: ", "error", err.Error())
 		return latest, http.StatusBadRequest, err
 	}
 
@@ -27,17 +28,17 @@ func (serv *DataModeServiceImp) LatestData(exchange string, symbol string) (doma
 	latest, err = serv.Cache.LatestData(exchange, symbol)
 	if err != nil {
 		// If Redis is not available, se look for data in the DB
-		slog.Debug("Failed to get latest data from cache: ", "error", err.Error())
+		logger.Debug("Failed to get latest data from cache: ", "error", err.Error())
 		if exchange == "All" {
 			latest, err = serv.DB.LatestDataByAllExchanges(symbol)
 			if err != nil {
-				slog.Error("Failed to get latest data by all exchanges from Db: ", "error", err.Error())
+				logger.Error("Failed to get latest data by all exchanges from Db: ", "error", err.Error())
 				return latest, http.StatusInternalServerError, err
 			}
 		} else {
 			latest, err = serv.DB.LatestDataByExchange(exchange, symbol)
 			if err != nil {
-				slog.Error("Failed to get latest data by exchange from Db: ", "error", err.Error())
+				logger.Error("Failed to get latest data by exchange from Db: ", "error", err.Error())
 				return latest, http.StatusInternalServerError, err
 			}
 		}

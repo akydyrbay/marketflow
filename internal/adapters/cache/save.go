@@ -3,8 +3,9 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"marketflow/internal/domain"
 	"time"
+
+	"marketflow/internal/domain"
 )
 
 func (c *RedisCache) SaveLatestData(latestData map[string]domain.Data) error {
@@ -24,6 +25,7 @@ func (c *RedisCache) SaveLatestData(latestData map[string]domain.Data) error {
 
 	return nil
 }
+
 func (c *RedisCache) SaveAggregatedData(aggregatedData map[string]domain.ExchangeData) error {
 	for key, value := range aggregatedData {
 		jsonData, err := json.Marshal(value)

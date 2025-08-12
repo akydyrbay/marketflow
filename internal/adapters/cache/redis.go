@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"marketflow/pkg/logger"
 	"os"
 	"time"
+
+	"marketflow/pkg/logger"
 
 	"github.com/redis/go-redis/v9"
 )

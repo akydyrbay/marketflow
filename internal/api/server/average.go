@@ -1,10 +1,11 @@
 package server
 
 import (
-	"log/slog"
-	"marketflow/internal/domain"
 	"net/http"
 	"time"
+
+	"marketflow/internal/domain"
+	"marketflow/pkg/logger"
 )
 
 // Fetches the average price for a specific exchange and symbol
@@ -47,7 +48,7 @@ func (serv *DataModeServiceImp) AveragePrice(exchange, symbol string) (domain.Da
 			data.Price = (avg.Average_price + data.Price) / 2
 		}
 	} else {
-		slog.Warn("Aggregated data not found for key", "key", key)
+		logger.Warn("Aggregated data not found for key", "key", key)
 	}
 
 	if data.Price == 0 {
@@ -98,7 +99,7 @@ func (serv *DataModeServiceImp) AveragePriceWithPeriod(exchange, symbol, period 
 			data.Price = (agg.Average_price + data.Price) / 2
 		}
 	} else {
-		slog.Warn("Aggregated data not found for key", "key", key)
+		logger.Warn("Aggregated data not found for key", "key", key)
 	}
 
 	if data.Price == 0 {

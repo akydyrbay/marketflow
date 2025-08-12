@@ -1,10 +1,11 @@
 package server
 
 import (
-	"log/slog"
-	"marketflow/internal/domain"
 	"net/http"
 	"time"
+
+	"marketflow/internal/domain"
+	"marketflow/pkg/logger"
 )
 
 // Fetches the lowest price by specific exchange and given symbol
@@ -25,13 +26,13 @@ func (serv *DataModeServiceImp) LowestPrice(exchange, symbol string) (domain.Dat
 	case "All":
 		lowest, err = serv.DB.MinPriceByAllExchanges(symbol)
 		if err != nil {
-			slog.Error("Failed to get lowest price by all exchanges", "error", err.Error())
+			logger.Error("Failed to get lowest price by all exchanges", "error", err.Error())
 			return domain.Data{}, http.StatusInternalServerError, err
 		}
 	default:
 		lowest, err = serv.DB.MinPriceByExchange(exchange, symbol)
 		if err != nil {
-			slog.Error("Failed to get lowest price from exchange", "error", err.Error())
+			logger.Error("Failed to get lowest price from exchange", "error", err.Error())
 			return domain.Data{}, http.StatusInternalServerError, err
 		}
 	}
@@ -47,7 +48,7 @@ func (serv *DataModeServiceImp) LowestPrice(exchange, symbol string) (domain.Dat
 			lowest.Timestamp = agg.Timestamp.UnixMilli()
 		}
 	} else {
-		slog.Warn("Aggregated data not found for key", "key", key)
+		logger.Warn("Aggregated data not found for key", "key", key)
 	}
 
 	if lowest.Price == 0 {
@@ -80,7 +81,7 @@ func (serv *DataModeServiceImp) LowestPriceWithPeriod(exchange, symbol string, p
 
 	lowest, err := serv.DB.MinPriceByExchangeWithDuration(exchange, symbol, startTime, duration)
 	if err != nil {
-		slog.Error("Failed to get lowest price from Exchange by period", "error", err.Error())
+		logger.Error("Failed to get lowest price from Exchange by period", "error", err.Error())
 		return domain.Data{}, http.StatusInternalServerError, err
 	}
 
@@ -94,7 +95,7 @@ func (serv *DataModeServiceImp) LowestPriceWithPeriod(exchange, symbol string, p
 			lowest.Timestamp = agg.Timestamp.UnixMilli()
 		}
 	} else {
-		slog.Warn("Aggregated data not found for key", "key", key)
+		logger.Warn("Aggregated data not found for key", "key", key)
 	}
 
 	if lowest.Price == 0 {
@@ -120,7 +121,7 @@ func (serv *DataModeServiceImp) LowestPriceByAllExchangesWithPeriod(symbol strin
 
 	lowest, err := serv.DB.MinPriceByAllExchangesWithDuration(symbol, startTime, duration)
 	if err != nil {
-		slog.Error("Failed to get lowest price from Exchange by period", "error", err.Error())
+		logger.Error("Failed to get lowest price from Exchange by period", "error", err.Error())
 		return domain.Data{}, http.StatusInternalServerError, err
 	}
 
@@ -134,7 +135,7 @@ func (serv *DataModeServiceImp) LowestPriceByAllExchangesWithPeriod(symbol strin
 			lowest.Timestamp = agg.Timestamp.UnixMilli()
 		}
 	} else {
-		slog.Warn("Aggregated data not found for key", "key", key)
+		logger.Warn("Aggregated data not found for key", "key", key)
 	}
 
 	if lowest.Price == 0 {

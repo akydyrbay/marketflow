@@ -3,12 +3,13 @@ package server
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"marketflow/internal/adapters/exchange"
-	"marketflow/internal/domain"
 	"net/http"
 	"sync"
 	"time"
+
+	"marketflow/internal/adapters/exchange"
+	"marketflow/internal/domain"
+	"marketflow/pkg/logger"
 )
 
 type DataModeServiceImp struct {
@@ -66,7 +67,7 @@ func (serv *DataModeServiceImp) StopListening() {
 	serv.cancel()
 	serv.Datafetcher.Close()
 	serv.wg.Wait()
-	slog.Info("Listen and save goroutine has been finished...")
+	logger.Info("Listen and save goroutine has been finished...")
 }
 
 // Core logic: handle data retrieval, aggregation, and persistence for exchanges
@@ -124,7 +125,7 @@ func (serv *DataModeServiceImp) collectAggregatedData(ctx context.Context, aggre
 			for data := range aggregated {
 				serv.mu.Lock()
 				serv.DataBuffer = append(serv.DataBuffer, data)
-				slog.Debug("Received data", "buffer_size", len(serv.DataBuffer))
+				logger.Debug("Received data", "buffer_size", len(serv.DataBuffer))
 				serv.mu.Unlock()
 			}
 			return
@@ -168,10 +169,10 @@ func (serv *DataModeServiceImp) SaveLatestData(rawDataCh chan []domain.Data) {
 		}
 
 		if err := serv.Cache.SaveLatestData(latestData); err != nil {
-			slog.Debug("Failed to save latest data to cache: " + err.Error())
+			logger.Debug("Failed to save latest data to cache: " + err.Error())
 
 			if err := serv.DB.SaveLatestData(latestData); err != nil {
-				slog.Error("Failed to save latest data to Db: " + err.Error())
+				logger.Error("Failed to save latest data to Db: " + err.Error())
 			}
 		}
 

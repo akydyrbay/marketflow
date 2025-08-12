@@ -94,6 +94,7 @@ func AggregateFromTestMode(input chan []domain.Data) (chan map[string]domain.Exc
 func (g *TestMode) Close() {
 	close(g.stop)
 }
+
 func (m *TestMode) CheckHealth() error {
 	return nil
 }

@@ -2,9 +2,10 @@ package service
 
 import (
 	"encoding/json"
+	"sync"
+
 	"marketflow/internal/domain"
 	"marketflow/pkg/logger"
-	"sync"
 )
 
 // Worker processes tasks from the jobs channel and sends the results to the results channel

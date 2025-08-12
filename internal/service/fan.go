@@ -1,10 +1,11 @@
 package service
 
 import (
-	"marketflow/internal/domain"
-	"marketflow/pkg/logger"
 	"sync"
 	"time"
+
+	"marketflow/internal/domain"
+	"marketflow/pkg/logger"
 )
 
 func FanIn(dataFlows [3]chan domain.Data) chan []domain.Data {

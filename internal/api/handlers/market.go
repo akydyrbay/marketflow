@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
+
 	"marketflow/internal/api/utils"
 	"marketflow/internal/domain"
 	"marketflow/pkg/logger"
-	"net/http"
 )
 
 type MarketDataHTTPHandler struct {

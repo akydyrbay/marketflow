@@ -2,16 +2,16 @@ package server
 
 import (
 	"fmt"
-	"marketflow/internal/api/handlers"
-	"marketflow/internal/domain"
-
 	"net/http"
 	"time"
+
+	"marketflow/internal/api/handlers"
+	"marketflow/internal/domain"
 )
 
-func Setup(db domain.Database, cacheMemory domain.CacheMemory, datafetchServ *DataModeServiceImp) *http.ServeMux {
-	modeHandler := handlers.NewSwitchModeHandler(datafetchServ)
-	marketHandler := handlers.NewMarketDataHandler(datafetchServ)
+func Setup(db domain.Database, cacheMemory domain.CacheMemory, datafetch *DataModeServiceImp) *http.ServeMux {
+	modeHandler := handlers.NewSwitchModeHandler(datafetch)
+	marketHandler := handlers.NewMarketDataHandler(datafetch)
 
 	mux := http.NewServeMux()
 

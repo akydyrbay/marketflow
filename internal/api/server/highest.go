@@ -1,10 +1,11 @@
 package server
 
 import (
-	"log/slog"
-	"marketflow/internal/domain"
 	"net/http"
 	"time"
+
+	"marketflow/internal/domain"
+	"marketflow/pkg/logger"
 )
 
 // Fetches the highest price for a specific exchange and symbol
@@ -26,14 +27,14 @@ func (serv *DataModeServiceImp) HighestPrice(exchange, symbol string) (domain.Da
 	case "All":
 		highest, err = serv.DB.MaxPriceByAllExchanges(symbol)
 		if err != nil {
-			slog.Error("Failed to get highest price by all exchanges", "error", err.Error())
+			logger.Error("Failed to get highest price by all exchanges", "error", err.Error())
 			return domain.Data{}, http.StatusInternalServerError, err
 		}
 
 	default:
 		highest, err = serv.DB.MaxPriceByExchange(exchange, symbol)
 		if err != nil {
-			slog.Error("Failed to get highest price from exchange", "error", err.Error())
+			logger.Error("Failed to get highest price from exchange", "error", err.Error())
 			return domain.Data{}, http.StatusInternalServerError, err
 		}
 	}
@@ -49,7 +50,7 @@ func (serv *DataModeServiceImp) HighestPrice(exchange, symbol string) (domain.Da
 			highest.Timestamp = agg.Timestamp.UnixMilli()
 		}
 	} else {
-		slog.Warn("Aggregated data not found for key", "key", key)
+		logger.Warn("Aggregated data not found for key", "key", key)
 	}
 
 	if highest.Price == 0 {
@@ -82,7 +83,7 @@ func (serv *DataModeServiceImp) HighestPriceWithPeriod(exchange, symbol string, 
 
 	highest, err := serv.DB.MaxPriceByExchangeWithDuration(exchange, symbol, startTime, duration)
 	if err != nil {
-		slog.Error("Failed to get highest price from Exchange by period", "error", err.Error())
+		logger.Error("Failed to get highest price from Exchange by period", "error", err.Error())
 		return domain.Data{}, http.StatusInternalServerError, err
 	}
 
@@ -96,7 +97,7 @@ func (serv *DataModeServiceImp) HighestPriceWithPeriod(exchange, symbol string, 
 			highest.Timestamp = agg.Timestamp.UnixMilli()
 		}
 	} else {
-		slog.Warn("Aggregated data not found for key", "key", key)
+		logger.Warn("Aggregated data not found for key", "key", key)
 	}
 	highest.Timestamp = startTime.Add(-duration).UnixMilli()
 
@@ -123,7 +124,7 @@ func (serv *DataModeServiceImp) HighestPriceByAllExchangesWithPeriod(symbol stri
 
 	highest, err := serv.DB.MaxPriceByAllExchangesWithDuration(symbol, startTime, duration)
 	if err != nil {
-		slog.Error("Failed to get highest price from Exchange by period", "error", err.Error())
+		logger.Error("Failed to get highest price from Exchange by period", "error", err.Error())
 		return domain.Data{}, http.StatusInternalServerError, err
 	}
 
@@ -137,7 +138,7 @@ func (serv *DataModeServiceImp) HighestPriceByAllExchangesWithPeriod(symbol stri
 			highest.Timestamp = agg.Timestamp.UnixMilli()
 		}
 	} else {
-		slog.Warn("Aggregated data not found for key", "key", key)
+		logger.Warn("Aggregated data not found for key", "key", key)
 	}
 
 	if highest.Price == 0 {

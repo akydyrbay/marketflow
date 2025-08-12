@@ -12,6 +12,10 @@ load:
 	docker load -i $(EXCH2)
 	docker load -i $(EXCH3)
 
+build:
+	@echo "Building the project..."
+	go build -o marketflow ./cmd/marketflow/main.go
+
 up:
 	@echo "Starting $(PROJECT_NAME)..."
 	$(DC) up --build

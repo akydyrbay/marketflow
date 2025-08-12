@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"marketflow/internal/domain"
 	"time"
+
+	"marketflow/internal/domain"
 )
 
 func (c *RedisCache) LatestData(exchange, symbol string) (domain.Data, error) {

@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"context"
+	"log"
 	"log/slog"
 	"os"
 )
@@ -9,10 +9,7 @@ import (
 var Log *slog.Logger
 
 func Init() {
-	// TextHandler or JSONHandler, whichever you like:
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource: true, // optional: include file/line in output
-	})
+	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{})
 	Log = slog.New(handler)
 }
 
@@ -32,6 +29,6 @@ func Warn(msg string, args ...any) {
 	Log.Warn(msg, args...)
 }
 
-func WithContext(ctx context.Context) *slog.Logger {
-	return slog.Default().With(slog.Any("ctx", ctx))
+func Fatal(msg string, args ...any) {
+	log.Fatal(msg)
 }

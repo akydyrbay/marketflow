@@ -1,9 +1,10 @@
 package handlers
 
 import (
+	"net/http"
+
 	"marketflow/internal/api/utils"
 	"marketflow/pkg/logger"
-	"net/http"
 )
 
 // Core handler for service health checking

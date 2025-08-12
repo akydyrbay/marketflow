@@ -1,9 +1,10 @@
 package db
 
 import (
+	"time"
+
 	"marketflow/internal/domain"
 	"marketflow/pkg/logger"
-	"time"
 )
 
 // Gets the latest price data by exchange for specific symbol

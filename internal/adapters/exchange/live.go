@@ -50,7 +50,7 @@ func (m *LiveMode) SetupDataFetcher() (chan map[string]domain.ExchangeData, chan
 		// Receive data from the server
 		go exch.FetchData(wg)
 
-		// Start the vorker to process the received data
+		// Start the worker to process the received data
 		go exch.SetWorkers(wg, dataFlows[i])
 
 		m.Exchanges = append(m.Exchanges, exch)
@@ -111,6 +111,7 @@ func (exch *Exchange) SetWorkers(globalWg *sync.WaitGroup, fan_in chan domain.Da
 		close(fan_in)
 	}()
 }
+
 func (exch *Exchange) FetchData(wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -156,6 +157,7 @@ func (exch *Exchange) FetchData(wg *sync.WaitGroup) {
 	close(closeCh)
 	close(exch.messageChan)
 }
+
 func (exch *Exchange) Reconnect(address string) error {
 	var err error
 	for i := 0; i < 5; i++ {
@@ -169,6 +171,7 @@ func (exch *Exchange) Reconnect(address string) error {
 	}
 	return err
 }
+
 func (m *LiveMode) Close() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -185,6 +188,7 @@ func (m *LiveMode) Close() {
 		m.Exchanges[i].closeCh <- true
 	}
 }
+
 func (m *LiveMode) CheckHealth() error {
 	var unhealthy string
 	for i := 0; i < len(m.Exchanges); i++ {

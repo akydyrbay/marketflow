@@ -75,4 +75,5 @@ func ShutdownServer(srv *http.Server) {
 	} else {
 		logger.Info("Server gracefully stopped.")
 	}
+	logger.Info("App is closed...")
 }

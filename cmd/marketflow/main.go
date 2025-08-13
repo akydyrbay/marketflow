@@ -2,7 +2,6 @@ package main
 
 import (
 	"marketflow/internal/app"
-	"marketflow/pkg/logger"
 )
 
 func main() {
@@ -14,6 +13,4 @@ func main() {
 	app.WaitForShutdown()
 
 	app.ShutdownServer(srv)
-
-	logger.Info("App is closed...")
 }

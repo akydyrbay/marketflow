@@ -58,3 +58,15 @@ func (r *RedisCache) Close() error {
 	logger.Info("closing redis cache")
 	return r.client.Close()
 }
+
+// SetWithTTL sets a key-value pair in Redis with a specified Time-To-Live (TTL).
+// After the ttl duration, Redis will automatically delete the key.
+func (r *RedisCache) SetWithTTL(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+	err := r.client.Set(ctx, key, value, ttl).Err()
+	if err != nil {
+		logger.Error("failed to set key with TTL in Redis", "key", key, "error", err)
+	} else {
+		logger.Info("successfully set key with TTL", "key", key, "ttl", ttl)
+	}
+	return err
+}

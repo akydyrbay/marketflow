@@ -2,23 +2,45 @@ package app
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
+	"marketflow/internal/adapters/api/handlers"
+	"marketflow/internal/adapters/api/server"
 	"marketflow/internal/adapters/cache"
 	"marketflow/internal/adapters/db"
 	"marketflow/internal/adapters/exchange"
-	"marketflow/internal/api/server"
 	"marketflow/internal/domain"
 	"marketflow/pkg/logger"
 )
 
-func SetupApp() (*http.Server, func()) {
+func Flags() {
 	logger.Init()
+	flag.Parse()
+	port, err := strconv.Atoi(*domain.Port)
+	if err != nil {
+		logger.Error("Port not allowed. Port number should be a number beetwen 1024 and 49151 exclusively")
+		os.Exit(1)
+	}
 
+	if port > 49151 || port < 1024 {
+		logger.Error("Port not allowed. Port number should be a number beetwen 1024 and 49151 exclusively")
+		os.Exit(1)
+	}
+
+	if *domain.HelpFlag {
+		fmt.Println(domain.HelpMessage)
+		os.Exit(0)
+	}
+}
+
+func SetupApp() (*http.Server, func()) {
 	repo := db.NewPostgres()
 
 	cache := cache.NewRedis()
@@ -33,7 +55,7 @@ func SetupApp() (*http.Server, func()) {
 		os.Exit(1)
 	}
 
-	router := server.Setup(repo, cache, datafetch)
+	router := handlers.Setup(repo, cache, datafetch)
 	srv := &http.Server{
 		Addr:    ":" + *domain.Port,
 		Handler: router,
@@ -51,7 +73,7 @@ func SetupApp() (*http.Server, func()) {
 
 func StartServer(srv *http.Server) {
 	go func() {
-		logger.Info("Starting server at " + *domain.Port + "...")
+		logger.Info("Starting the server...", "port", *domain.Port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("Server error: ", err.Error())
 		}

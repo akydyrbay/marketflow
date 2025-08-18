@@ -3,15 +3,14 @@ package exchange
 import (
 	"bufio"
 	"errors"
+	"marketflow/internal/adapters/service"
+	"marketflow/internal/domain"
+	"marketflow/pkg/config"
+	"marketflow/pkg/logger"
 	"net"
-	"os"
 	"strconv"
 	"sync"
 	"time"
-
-	"marketflow/internal/domain"
-	"marketflow/internal/service"
-	"marketflow/pkg/logger"
 )
 
 type Exchange struct {
@@ -35,8 +34,14 @@ func (m *LiveMode) SetupDataFetcher() (chan map[string]domain.ExchangeData, chan
 
 	wg := &sync.WaitGroup{}
 
-	ports := []string{os.Getenv("EXCHANGE1_PORT"), os.Getenv("EXCHANGE2_PORT"), os.Getenv("EXCHANGE3_PORT")}
-	exchHosts := []string{os.Getenv("EXCHANGE1_NAME"), os.Getenv("EXCHANGE2_NAME"), os.Getenv("EXCHANGE3_NAME")}
+	exchangeConfig, err := config.LoadExchangeConfig()
+	if err != nil {
+		logger.Error("Error loading exchange config", "error", err)
+		return nil, nil, err
+	}
+
+	ports := exchangeConfig.Ports
+	exchHosts := exchangeConfig.ExchHosts
 
 	for i := 0; i < len(ports); i++ {
 		wg.Add(1)
@@ -62,7 +67,7 @@ func (m *LiveMode) SetupDataFetcher() (chan map[string]domain.ExchangeData, chan
 
 	mergedCh := service.FanIn(dataFlows)
 
-	aggregated, rawDatach := service.Aggregate(mergedCh)
+	aggregatedChan, rawDataChan := service.Aggregate(mergedCh)
 
 	go func() {
 		wg.Wait()
@@ -77,11 +82,11 @@ func (m *LiveMode) SetupDataFetcher() (chan map[string]domain.ExchangeData, chan
 
 		logger.Info("All workers have finished processing.")
 	}()
-	return aggregated, rawDatach, nil
+	return aggregatedChan, rawDataChan, nil
 }
 
 // GenerateExchange returns pointer to Exchange data with messageChan
-func GenerateExchange(number string, address string) (*Exchange, error) {
+func GenerateExchange(exchangeNumber, address string) (*Exchange, error) {
 	messageChan := make(chan string)
 
 	conn, err := net.Dial("tcp", address)
@@ -89,7 +94,7 @@ func GenerateExchange(number string, address string) (*Exchange, error) {
 		return nil, err
 	}
 
-	exchangeServ := &Exchange{number: number, conn: conn, messageChan: messageChan}
+	exchangeServ := &Exchange{number: exchangeNumber, conn: conn, messageChan: messageChan}
 	return exchangeServ, nil
 }
 
@@ -131,7 +136,7 @@ func (exch *Exchange) FetchData(wg *sync.WaitGroup) {
 		mu.Unlock()
 	}()
 
-	logger.Info("Starting reading data on exchange: ", exch.number)
+	logger.Info("Starting reading data on exchange...", "Exchange name", exch.number)
 
 	for {
 		for scanner.Scan() && reconnect {
@@ -139,7 +144,7 @@ func (exch *Exchange) FetchData(wg *sync.WaitGroup) {
 			exch.messageChan <- line
 		}
 
-		logger.Info("Connection lost on exchange %s. Reconnecting...\n", exch.number)
+		logger.Info("Connection lost on exchange %s. Reconnecting...\n", "Exchange name", exch.number)
 
 		if reconnect {
 			if err := exch.Reconnect(address); err != nil {

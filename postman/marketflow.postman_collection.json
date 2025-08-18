@@ -1,0 +1,344 @@
+{
+	"info": {
+		"_postman_id": "f8ae1b02-8732-479a-bb61-13f6295c9216",
+		"name": "marketflow",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "43683652"
+	},
+	"item": [
+		{
+			"name": "latest",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/latest/BTCUSDT",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"latest",
+						"BTCUSDT"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "latestEX",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/latest/Exchange1/BTCUSDT",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"latest",
+						"Exchange1",
+						"BTCUSDT"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "highest",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/highest/BTCUSDT",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"highest",
+						"BTCUSDT"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "highestPer",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/highest/BTCUSDT?period=10s",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"highest",
+						"BTCUSDT"
+					],
+					"query": [
+						{
+							"key": "period",
+							"value": "10s"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "highestEX",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/highest/Exchange1/BTCUSDT",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"highest",
+						"Exchange1",
+						"BTCUSDT"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "highestEXPer",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/highest/Exchange1/BTCUSDT?period=5s",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"highest",
+						"Exchange1",
+						"BTCUSDT"
+					],
+					"query": [
+						{
+							"key": "period",
+							"value": "5s"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "lowest",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/lowest/BTCUSDT",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"lowest",
+						"BTCUSDT"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "lowestEx",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/lowest/Exchange1/BTCUSDT",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"lowest",
+						"Exchange1",
+						"BTCUSDT"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "lowestPer",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/lowest/BTCUSDT?period=10s",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"lowest",
+						"BTCUSDT"
+					],
+					"query": [
+						{
+							"key": "period",
+							"value": "10s"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "lowestEXPer",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/lowest/Exchange1/BTCUSDT?period=10s",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"lowest",
+						"Exchange1",
+						"BTCUSDT"
+					],
+					"query": [
+						{
+							"key": "period",
+							"value": "10s"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "average",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/average/BTCUSDT",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"average",
+						"BTCUSDT"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "averageEX",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/average/Exchange1/BTCUSDT",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"average",
+						"Exchange1",
+						"BTCUSDT"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "averageEX Copy",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/prices/average/Exchange1/BTCUSDT?period=10s",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"prices",
+						"average",
+						"Exchange1",
+						"BTCUSDT"
+					],
+					"query": [
+						{
+							"key": "period",
+							"value": "10s"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "mode",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/mode/live",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"mode",
+						"live"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/health",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"health"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

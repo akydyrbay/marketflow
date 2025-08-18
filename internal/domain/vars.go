@@ -1,5 +1,8 @@
 package domain
 
+import "flag"
+
+// Currencies
 const (
 	BTCUSDT  string = "BTCUSDT"
 	DOGEUSDT string = "DOGEUSDT"
@@ -12,20 +15,9 @@ var Symbols = []string{BTCUSDT, DOGEUSDT, TONUSDT, SOLUSDT, ETHUSDT}
 
 var Exchanges = []string{"Exchange1", "Exchange2", "Exchange3", "All"}
 
-func CheckExchangeName(exchange string) error {
-	for _, val := range Exchanges {
-		if exchange == val {
-			return nil
-		}
-	}
-	return ErrInvalidExchangeVal
-}
-
-func CheckSymbolName(symbol string) error {
-	for _, val := range Symbols {
-		if symbol == val {
-			return nil
-		}
-	}
-	return ErrInvalidSymbolVal
-}
+// Flags
+var (
+	Port        = flag.String("port", "8080", "Establishes server port number")
+	HelpFlag    = flag.Bool("help", false, "Show help message")
+	HelpMessage = "Usage:\n   marketflow [--port <N>]\n   marketflow --help\n\nOptions:\n   --port N\tPort number"
+)

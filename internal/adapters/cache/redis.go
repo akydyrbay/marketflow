@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"time"
-
+	"marketflow/pkg/config"
 	"marketflow/pkg/logger"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -19,20 +18,17 @@ type RedisCache struct {
 func NewRedis() *RedisCache {
 	logger.Info("Starting cache connection...")
 
-	host := os.Getenv("CACHE_HOST")
-	port := os.Getenv("CACHE_PORT")
-	pass := os.Getenv("CACHE_PASSWORD")
-
-	if host == "" || port == "" {
-		logger.Error("CACHE_HOST or CACHE_PORT not set", "host", host, "port", port)
-		log.Fatal("missing Redis config")
+	redisConfig, err := config.LoadRedisConfig()
+	if err != nil {
+		logger.Error("Error loading Redis config", "error", err)
+		log.Fatal(err)
 	}
 
-	addr := fmt.Sprintf("%s:%s", host, port)
+	addr := fmt.Sprintf("%s:%s", redisConfig.Host, redisConfig.Port)
 
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
-		Password: pass,
+		Password: redisConfig.Password,
 		DB:       0,
 	})
 	cache := &RedisCache{
@@ -59,14 +55,10 @@ func (r *RedisCache) Close() error {
 	return r.client.Close()
 }
 
-// SetWithTTL sets a key-value pair in Redis with a specified Time-To-Live (TTL).
-// After the ttl duration, Redis will automatically delete the key.
 func (r *RedisCache) SetWithTTL(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	err := r.client.Set(ctx, key, value, ttl).Err()
 	if err != nil {
 		logger.Error("failed to set key with TTL in Redis", "key", key, "error", err)
-	} else {
-		logger.Info("successfully set key with TTL", "key", key, "ttl", ttl)
 	}
 	return err
 }

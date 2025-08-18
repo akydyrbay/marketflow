@@ -5,6 +5,8 @@ import (
 )
 
 func main() {
+	app.Flags()
+
 	srv, cleanup := app.SetupApp()
 	defer cleanup()
 

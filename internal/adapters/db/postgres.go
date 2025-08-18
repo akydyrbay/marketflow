@@ -4,10 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
-	"time"
-
+	"marketflow/pkg/config"
 	"marketflow/pkg/logger"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -19,29 +18,19 @@ type PostgresRepository struct {
 func NewPostgres() *PostgresRepository {
 	logger.Info("Starting database connection...")
 
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	pass := os.Getenv("DB_PASSWORD")
-	name := os.Getenv("DB_NAME")
-
-	if host == "" || port == "" || user == "" || pass == "" || name == "" {
-		logger.Error("one or more DB_* env vars are missing",
-			"DB_HOST", host,
-			"DB_PORT", port,
-			"DB_USER", user,
-			"DB_NAME", name,
-		)
-		log.Fatal("unable to continue without DB config")
+	dbConfig, err := config.LoadDBConfig()
+	if err != nil {
+		logger.Error("Error loading DB config", "error", err)
+		log.Fatal(err)
 	}
 
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, pass, name,
+		dbConfig.Host, dbConfig.Port, dbConfig.User, dbConfig.Password, dbConfig.Name,
 	)
 
 	var db *sql.DB
-	var err error
+
 	maxRetries := 5
 
 	for i := 0; i < maxRetries; i++ {

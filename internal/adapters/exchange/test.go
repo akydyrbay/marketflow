@@ -1,11 +1,10 @@
 package exchange
 
 import (
+	"marketflow/internal/adapters/service"
+	"marketflow/internal/domain"
 	"math/rand"
 	"time"
-
-	"marketflow/internal/domain"
-	"marketflow/internal/service"
 )
 
 type TestMode struct {
